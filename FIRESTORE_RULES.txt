@@ -1,0 +1,67 @@
+Copy and paste these rules into Firebase Console → Firestore Database → Rules:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - authenticated users can read all, write their own
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Rooms collection
+    match /rooms/{roomId} {
+      // Allow reading public rooms (isDM == false) for all authenticated users
+      // Allow reading DM rooms only if user is a member
+      allow read: if request.auth != null && (
+        resource.data.isDM == false || 
+        request.auth.uid in resource.data.members
+      );
+      
+      // Allow creating rooms if user is in the members array
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.members;
+      
+      // Allow updating rooms:
+      // 1. If user is already a member, OR
+      // 2. If room is public (isDM == false) - allows joining
+      allow update: if request.auth != null && (
+        request.auth.uid in resource.data.members ||
+        resource.data.isDM == false
+      );
+      
+      // Allow deleting rooms if user is the creator (by createdBy field) or first member (for backward compatibility)
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.createdBy ||
+        (!('createdBy' in resource.data) && resource.data.members.size() > 0 && request.auth.uid == resource.data.members[0])
+      );
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Allow reading/creating messages if user is a member of the parent room
+        allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.members;
+        // Allow deleting messages (for account deletion cleanup)
+        allow delete: if request.auth != null;
+      }
+    }
+    
+    // Invites collection
+    match /invites/{inviteId} {
+      // Allow reading individual invites if user is sender or receiver
+      // For queries, Firestore will check each document against this rule
+      allow read: if request.auth != null && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.from;
+      allow update: if request.auth != null && request.auth.uid == resource.data.to;
+      // Allow deleting invites (for account deletion cleanup and canceling)
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+    }
+  }
+}
+
+IMPORTANT STEPS:
+1. Go to: https://console.firebase.google.com/project/quackhat-9232c/firestore/rules
+2. Delete ALL existing rules
+3. Copy and paste the rules above
+4. Click "Publish" button
+5. Wait for confirmation
+6. Refresh your browser
+
