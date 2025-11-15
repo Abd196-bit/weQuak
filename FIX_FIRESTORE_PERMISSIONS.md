@@ -1,5 +1,27 @@
-Copy and paste these rules into Firebase Console → Firestore Database → Rules:
+# Fix Firestore Permission Error
 
+## The Problem
+You're seeing this error:
+```
+FirebaseError: [code=permission-denied]: Missing or insufficient permissions.
+```
+
+This means Firestore rules need to be updated.
+
+## The Solution (2 minutes)
+
+### Step 1: Open Firestore Rules
+Go to: **https://console.firebase.google.com/project/quackhat-9232c/firestore/rules**
+
+### Step 2: Delete ALL Existing Rules
+1. Select all text in the rules editor (Ctrl+A or Cmd+A)
+2. Delete everything
+3. Make sure the editor is completely empty
+
+### Step 3: Copy These Rules
+Copy the ENTIRE block below (from `rules_version` to the closing `}`):
+
+```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -60,12 +82,33 @@ service cloud.firestore {
     }
   }
 }
+```
 
-IMPORTANT STEPS:
-1. Go to: https://console.firebase.google.com/project/quackhat-9232c/firestore/rules
-2. Delete ALL existing rules
-3. Copy and paste the rules above
-4. Click "Publish" button
-5. Wait for confirmation
-6. Refresh your browser
+### Step 4: Paste and Publish
+1. Paste the rules into the editor
+2. Click the **"Publish"** button (top right)
+3. Wait for the green success message
+4. Wait 10-20 seconds for rules to propagate
+
+### Step 5: Test
+1. **Hard refresh your browser** (Ctrl+Shift+R or Cmd+Shift+R)
+2. The permission error should be gone!
+3. Users should now load in the UserList
+
+## What Changed
+- Changed `allow get` and `allow list` to `allow read` for the users collection
+- This covers both individual document reads and collection queries
+- More concise and works better with `onSnapshot`
+
+## If It Still Doesn't Work
+
+### Verify Rules Were Published
+1. Go back to: https://console.firebase.google.com/project/quackhat-9232c/firestore/rules
+2. Make sure you see the rules you just pasted
+3. Check the timestamp - it should show "Published just now" or recent time
+
+### Check Browser Console
+After updating rules, you should see:
+- ✅ `UserList: Successfully loaded X other users`
+- ❌ Still permission error: Rules not published correctly - go back to Step 2
 

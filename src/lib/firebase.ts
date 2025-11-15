@@ -8,4 +8,5 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+// Initialize storage - Firebase SDK will use the bucket from firebaseConfig automatically
 export const storage = getStorage(app);

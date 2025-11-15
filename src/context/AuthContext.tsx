@@ -48,9 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await setDoc(userDocRef, {
               username: username,
               email: user.email || '',
+              profilePictureUrl: user.photoURL || null,
             });
             console.log('AuthContext: User document created successfully');
           } else {
+            // Update profile picture URL if it exists in Firestore but not in Auth
+            const userData = userDoc.data();
+            if (userData.profilePictureUrl && !user.photoURL) {
+              try {
+                const { updateProfile } = await import('firebase/auth');
+                await updateProfile(user, { photoURL: userData.profilePictureUrl });
+              } catch (error) {
+                console.warn('AuthContext: Could not update profile picture:', error);
+              }
+            }
             console.log('AuthContext: User document already exists for', user.uid);
           }
         } catch (error: any) {

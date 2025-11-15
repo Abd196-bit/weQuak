@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, Trash2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { LogOut, Trash2, Camera, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +19,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { reauthenticateWithCredential, EmailAuthProvider, updateProfile } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage, db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const DuckIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -32,6 +36,85 @@ export default function Header() {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [password, setPassword] = useState('');
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const profileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid file type',
+        description: 'Please select an image file.',
+      });
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: 'Please select an image smaller than 5MB.',
+      });
+      return;
+    }
+    
+    setIsUploadingProfile(true);
+    try {
+      console.log('Header: Starting profile picture upload for user:', user.uid);
+      // Upload to Firebase Storage
+      const storageRef = ref(storage, `profile_pictures/${user.uid}/${Date.now()}_${file.name}`);
+      console.log('Header: Uploading to storage path:', `profile_pictures/${user.uid}/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      console.log('Header: Upload successful, getting download URL...');
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('Header: Download URL:', downloadURL);
+      
+      // Update Firebase Auth profile
+      console.log('Header: Updating Firebase Auth profile...');
+      await updateProfile(user, { photoURL: downloadURL });
+      console.log('Header: Firebase Auth profile updated');
+      
+      // Update Firestore user document
+      console.log('Header: Updating Firestore user document...');
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, { profilePictureUrl: downloadURL });
+      console.log('Header: Firestore user document updated');
+      
+      setProfilePictureUrl(downloadURL);
+      toast({
+        title: 'Profile picture updated',
+        description: 'Your profile picture has been updated successfully.',
+      });
+    } catch (error: any) {
+      console.error('Header: Error uploading profile picture:', error);
+      console.error('Header: Error code:', error.code);
+      console.error('Header: Error message:', error.message);
+      
+      let errorMessage = 'Please try again.';
+      if (error.code === 'storage/unauthorized' || error.code === 'storage/permission-denied') {
+        errorMessage = 'Storage permission denied. Please check your Firebase Storage rules.';
+      } else if (error.code === 'storage/quota-exceeded') {
+        errorMessage = 'Storage quota exceeded. Please contact support.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Failed to upload profile picture',
+        description: errorMessage,
+      });
+    } finally {
+      setIsUploadingProfile(false);
+      if (profileInputRef.current) {
+        profileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleDeleteAccount = async () => {
     if (!user || !user.email) return;
@@ -92,7 +175,42 @@ export default function Header() {
         <h1 className="text-xl font-bold text-primary">We Quack</h1>
       </div>
       <div className='flex items-center gap-2'>
-        {user && <span className='text-sm text-muted-foreground'>Hi, {user.displayName}</span>}
+        {user && (
+          <>
+            <div className="relative group">
+              <Avatar className="h-10 w-10 cursor-pointer" onClick={() => profileInputRef.current?.click()}>
+                <AvatarImage src={user.photoURL || profilePictureUrl || undefined} alt={user.displayName || 'User'} />
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              {isUploadingProfile && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              )}
+              <input
+                type="file"
+                ref={profileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleProfilePictureChange}
+                disabled={isUploadingProfile}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border"
+                onClick={() => profileInputRef.current?.click()}
+                disabled={isUploadingProfile}
+                title="Change profile picture"
+              >
+                <Camera className="h-3 w-3" />
+              </Button>
+            </div>
+            <span className='text-sm text-muted-foreground'>Hi, {user.displayName}</span>
+          </>
+        )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="ghost" size="icon" title="Delete account">

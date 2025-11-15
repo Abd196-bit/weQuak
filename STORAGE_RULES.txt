@@ -1,0 +1,40 @@
+Copy and paste these rules into Firebase Console → Storage → Rules:
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Profile pictures - users can upload/read their own, read others
+    match /profile_pictures/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024 // 5MB limit
+        && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Chat images - users can upload/read if they're members of the room
+    match /chat_images/{roomId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024 // 10MB limit
+        && (request.resource.contentType.matches('image/.*') || 
+            request.resource.contentType.matches('application/.*') ||
+            request.resource.contentType.matches('video/.*'));
+    }
+    
+    // Chat files - users can upload/read files
+    match /chat_files/{roomId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+  }
+}
+
+IMPORTANT STEPS:
+1. Go to: https://console.firebase.google.com/project/quackhat-9232c/storage/rules
+2. Delete ALL existing rules
+3. Copy and paste the rules above
+4. Click "Publish" button
+5. Wait for confirmation
+6. Refresh your browser
+

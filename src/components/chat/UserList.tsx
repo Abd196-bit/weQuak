@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '../ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { UserPlus, MessageSquarePlus, CheckCircle, X } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import type { Room } from './RoomList';
@@ -15,6 +16,7 @@ interface User {
   id: string;
   username: string;
   email?: string;
+  profilePictureUrl?: string;
 }
 
 interface Invite {
@@ -64,7 +66,12 @@ export default function UserList({ onSelectRoom }: UserListProps) {
             console.log('UserList: Processing user', doc.id, 'with data:', { username: data.username, email: data.email });
             // Only include users that have a username field
             if (data.username) {
-              loadedUsers.push({ id: doc.id, username: data.username, email: data.email });
+              loadedUsers.push({ 
+                id: doc.id, 
+                username: data.username, 
+                email: data.email,
+                profilePictureUrl: data.profilePictureUrl 
+              });
             } else {
               console.warn('UserList: User', doc.id, 'missing username field. Data:', data);
             }
@@ -316,7 +323,13 @@ export default function UserList({ onSelectRoom }: UserListProps) {
                 const receivedInvite = getReceivedInviteForUser(targetUser);
                 const sentInvite = getSentInviteForUser(targetUser);
                 return (
-              <li key={targetUser.id} className='flex items-center group/user-item'>
+              <li key={targetUser.id} className='flex items-center group/user-item gap-2'>
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={targetUser.profilePictureUrl} alt={targetUser.username} />
+                  <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                    {targetUser.username?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <span className='flex-1 text-sm truncate'>{targetUser.username}</span>
                 {receivedInvite ? (
                     <div className="flex items-center gap-1">

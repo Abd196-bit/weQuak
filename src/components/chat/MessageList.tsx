@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 
@@ -21,6 +21,10 @@ interface Message {
   imageUrl?: string;
   imageWidth?: number;
   imageHeight?: number;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
 }
 
 interface MessageListProps {
@@ -29,6 +33,7 @@ interface MessageListProps {
 
 export default function MessageList({ roomId }: MessageListProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [userProfilePictures, setUserProfilePictures] = useState<Record<string, string>>({});
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -38,12 +43,36 @@ export default function MessageList({ roomId }: MessageListProps) {
     const messagesRef = collection(db, `rooms/${roomId}/messages`);
     const q = query(messagesRef, orderBy('timestamp', 'asc'), limit(50));
     
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       const newMessages: Message[] = [];
+      const userIds = new Set<string>();
+      
       querySnapshot.forEach((doc) => {
-        newMessages.push({ id: doc.id, ...doc.data() } as Message);
+        const messageData = { id: doc.id, ...doc.data() } as Message;
+        newMessages.push(messageData);
+        userIds.add(messageData.userId);
       });
+      
       setMessages(newMessages);
+      
+      // Fetch profile pictures for all unique users
+      const profilePictures: Record<string, string> = {};
+      await Promise.all(
+        Array.from(userIds).map(async (userId) => {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', userId));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              if (userData.profilePictureUrl) {
+                profilePictures[userId] = userData.profilePictureUrl;
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
+          }
+        })
+      );
+      setUserProfilePictures(prev => ({ ...prev, ...profilePictures }));
     });
 
     return () => unsubscribe();
@@ -70,6 +99,7 @@ export default function MessageList({ roomId }: MessageListProps) {
             >
               {!isCurrentUser && (
                 <Avatar className="h-8 w-8">
+                  <AvatarImage src={userProfilePictures[message.userId]} alt={message.username} />
                   <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
                     {message.username?.charAt(0).toUpperCase()}
                   </AvatarFallback>
@@ -91,18 +121,37 @@ export default function MessageList({ roomId }: MessageListProps) {
                     <div className='mt-2'>
                         <Image 
                             src={message.imageUrl} 
-                            alt="uploaded content" 
+                            alt="uploaded image" 
                             width={message.imageWidth || 300}
                             height={message.imageHeight || 200}
-                            className='rounded-md object-cover'
+                            className='rounded-md object-cover max-w-full'
+                            unoptimized
                         />
+                    </div>
+                )}
+                {message.fileUrl && !message.imageUrl && (
+                    <div className='mt-2'>
+                        <a 
+                            href={message.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm underline flex items-center gap-2"
+                        >
+                            <span>📎 {message.fileName || 'Download file'}</span>
+                            {message.fileSize && (
+                                <span className="text-xs opacity-75">
+                                    ({(message.fileSize / 1024).toFixed(1)} KB)
+                                </span>
+                            )}
+                        </a>
                     </div>
                 )}
               </div>
               {isCurrentUser && (
                 <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.photoURL || userProfilePictures[user?.uid || '']} alt={user?.displayName || 'You'} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    {user?.displayName?.charAt(0).toUpperCase()}
+                    {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               )}
