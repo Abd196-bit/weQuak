@@ -25,9 +25,9 @@ export default function Home() {
     setActiveRoom(room);
   }, []);
 
-  if (loading || !user) {
+  if (loading) {
     return (
-      <div className="flex h-screen w-full flex-col bg-background">
+      <div className="flex h-screen w-full flex-col bg-background text-foreground">
         <div className="flex items-center justify-between border-b p-4">
           <Skeleton className="h-8 w-36" />
           <Skeleton className="h-8 w-20" />
@@ -41,7 +41,7 @@ export default function Home() {
           </div>
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
-              <p className="text-lg text-muted-foreground">Loading chats...</p>
+              <p className="text-lg text-foreground">Loading chats...</p>
             </div>
           </div>
         </div>
@@ -49,18 +49,29 @@ export default function Home() {
     );
   }
 
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full flex-col bg-background text-foreground items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-foreground mb-4">Not logged in</p>
+          <p className="text-sm text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
+    <div className="flex h-screen flex-col bg-background text-foreground" style={{ minHeight: '100vh' }}>
       <Header />
-      <div className="flex flex-1 overflow-y-hidden border-t">
+      <div className="flex flex-1 overflow-y-hidden border-t" style={{ minHeight: 0 }}>
         <RoomList onSelectRoom={handleSelectRoom} activeRoomId={activeRoom?.id} />
-        <main className="flex flex-1 flex-col border-l border-r">
+        <main className="flex flex-1 flex-col border-l border-r" style={{ minWidth: 0 }}>
           {activeRoom ? (
             <ChatWindow room={activeRoom} key={activeRoom.id} />
           ) : (
             <div className="flex h-full flex-1 items-center justify-center">
-              <div className="text-center">
-                <p className="text-lg text-muted-foreground">Select a chat to start quacking!</p>
+              <div className="text-center p-8">
+                <p className="text-lg text-foreground mb-2">Select a chat to start quacking!</p>
                 <p className="text-sm text-muted-foreground">Or create a room, or invite a user to a new chat.</p>
               </div>
             </div>

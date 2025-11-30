@@ -24,7 +24,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased bg-background text-foreground" style={{ margin: 0, padding: 0, minHeight: '100vh' }}>
         <AuthProvider>
           {children}
           <Toaster />
