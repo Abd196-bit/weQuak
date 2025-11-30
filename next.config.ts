@@ -2,6 +2,9 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: process.env.ELECTRON_BUILD ? 'export' : undefined,
+  basePath: process.env.ELECTRON_BUILD ? '' : undefined,
+  assetPrefix: process.env.ELECTRON_BUILD ? './' : undefined,
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -1,0 +1,59 @@
+{
+  "appId": "com.wequack.app",
+  "productName": "We Quack",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    ".next/**/*",
+    "electron/**/*",
+    "node_modules/**/*",
+    "package.json",
+    "next.config.ts",
+    "tsconfig.json",
+    "tailwind.config.ts",
+    "postcss.config.mjs",
+    "components.json",
+    "src/**/*",
+    "public/**/*",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*"
+  ],
+  "mac": {
+    "category": "public.app-category.social-networking",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
+    ],
+    "icon": "src/app/favicon.png"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      }
+    ],
+    "icon": "src/app/favicon.png"
+  },
+  "linux": {
+    "target": [
+      "AppImage",
+      "deb"
+    ],
+    "icon": "src/app/favicon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}
+
