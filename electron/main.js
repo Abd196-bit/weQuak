@@ -27,16 +27,33 @@ function startNextServer() {
     },
   });
 
+  let serverReady = false;
+  
   nextProcess.stdout.on('data', (data) => {
-    console.log(`Next.js: ${data}`);
+    const output = data.toString();
+    console.log(`Next.js: ${output}`);
     // Check if server is ready
-    if (data.toString().includes('Ready') || data.toString().includes('started server')) {
-      console.log('Next.js server is ready!');
+    if (output.includes('Ready') || 
+        output.includes('started server') || 
+        output.includes('Local:') ||
+        output.includes('compiled successfully')) {
+      if (!serverReady) {
+        serverReady = true;
+        console.log('Next.js server is ready!');
+      }
     }
   });
 
   nextProcess.stderr.on('data', (data) => {
-    console.error(`Next.js Error: ${data}`);
+    const error = data.toString();
+    console.error(`Next.js Error: ${error}`);
+    // Some Next.js messages go to stderr but aren't errors
+    if (error.includes('Ready') || error.includes('started server')) {
+      if (!serverReady) {
+        serverReady = true;
+        console.log('Next.js server is ready!');
+      }
+    }
   });
 
   nextProcess.on('close', (code) => {
@@ -72,13 +89,22 @@ function createWindow() {
   const startUrl = `http://localhost:${PORT}`;
 
   // Function to check if server is ready
-  const checkServerReady = (retries = 30) => {
+  const checkServerReady = (retries = 60) => {
     const http = require('http');
     const req = http.get(`http://localhost:${PORT}`, (res) => {
-      console.log('Server is ready!');
-      mainWindow.loadURL(startUrl).catch((err) => {
-        console.error('Failed to load URL:', err);
-      });
+      console.log(`Server responded with status: ${res.statusCode}`);
+      if (res.statusCode === 200 || res.statusCode === 404) {
+        console.log('Server is ready! Loading window...');
+        mainWindow.loadURL(startUrl).catch((err) => {
+          console.error('Failed to load URL:', err);
+        });
+      } else {
+        // Server responded but with error, still try to load
+        console.log('Server responded, attempting to load...');
+        mainWindow.loadURL(startUrl).catch((err) => {
+          console.error('Failed to load URL:', err);
+        });
+      }
     });
     
     req.on('error', (err) => {
@@ -86,14 +112,22 @@ function createWindow() {
         console.log(`Waiting for server... (${retries} retries left)`);
         setTimeout(() => checkServerReady(retries - 1), 1000);
       } else {
-        console.error('Server failed to start after 30 seconds');
+        console.error('Server failed to start after 60 seconds');
+        // Try to load anyway - might be a different error
         mainWindow.loadURL(startUrl).catch((err) => {
           console.error('Failed to load URL:', err);
+          mainWindow.webContents.executeJavaScript(`
+            document.body.innerHTML = '<div style="padding: 20px; text-align: center;">
+              <h1>Server Error</h1>
+              <p>Unable to connect to the server. Please check the console for errors.</p>
+              <p>Port: ${PORT}</p>
+            </div>';
+          `);
         });
       }
     });
     
-    req.setTimeout(1000, () => {
+    req.setTimeout(2000, () => {
       req.destroy();
       if (retries > 0) {
         setTimeout(() => checkServerReady(retries - 1), 1000);

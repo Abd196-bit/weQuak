@@ -171,8 +171,17 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between p-3 md:p-4 bg-background">
+    <header className="flex items-center justify-between p-3 md:p-4 bg-background border-b">
       <div className="flex items-center gap-2">
+        <img 
+          src="/favicon.ico" 
+          alt="We Quack Logo" 
+          className="h-6 w-6 md:h-8 md:w-8 object-contain"
+          onError={(e) => {
+            // Fallback to DuckIcon if image fails to load
+            e.currentTarget.style.display = 'none';
+          }}
+        />
         <DuckIcon className="text-primary h-6 w-6 md:h-8 md:w-8" />
         <h1 className="text-lg md:text-xl font-bold text-primary">We Quack</h1>
       </div>
