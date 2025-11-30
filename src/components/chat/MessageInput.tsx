@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SendHorizonal, Loader2, Paperclip, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { sendSMSNotification } from '@/lib/smsNotifications';
 
 interface MessageInputProps {
   roomId: string;
@@ -135,6 +136,28 @@ export default function MessageInput({ roomId }: MessageInputProps) {
       console.log('MessageInput: Sending message with data:', messageData);
       await addDoc(messagesRef, messageData);
       console.log('MessageInput: Message sent successfully');
+      
+      // Send SMS notifications for DM rooms
+      try {
+        const roomDoc = await getDoc(doc(db, 'rooms', roomId));
+        if (roomDoc.exists()) {
+          const roomData = roomDoc.data();
+          if (roomData.isDM && roomData.members) {
+            // Find the other member(s) in the DM
+            const otherMembers = roomData.members.filter((memberId: string) => memberId !== user.uid);
+            const senderUsername = user.displayName || user.email?.split('@')[0] || 'Someone';
+            const messageText = messageData.text || (file ? `Sent a ${file.type.startsWith('image/') ? 'photo' : 'file'}` : 'Sent a message');
+            
+            // Send SMS to each other member
+            for (const recipientId of otherMembers) {
+              await sendSMSNotification(recipientId, senderUsername, messageText, roomId);
+            }
+          }
+        }
+      } catch (smsError) {
+        // Don't fail message sending if SMS fails
+        console.error('MessageInput: Error sending SMS notification:', smsError);
+      }
       
       setMessage('');
       setFile(null);

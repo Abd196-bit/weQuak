@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, Trash2, Camera, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ const DuckIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function Header() {
   const { logout, user, deleteAccount } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [password, setPassword] = useState('');
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -169,24 +171,24 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between p-4 bg-background">
+    <header className="flex items-center justify-between p-3 md:p-4 bg-background">
       <div className="flex items-center gap-2">
-        <DuckIcon className="text-primary h-8 w-8" />
-        <h1 className="text-xl font-bold text-primary">We Quack</h1>
+        <DuckIcon className="text-primary h-6 w-6 md:h-8 md:w-8" />
+        <h1 className="text-lg md:text-xl font-bold text-primary">We Quack</h1>
       </div>
       <div className='flex items-center gap-2'>
         {user && (
           <>
             <div className="relative group">
-              <Avatar className="h-10 w-10 cursor-pointer" onClick={() => profileInputRef.current?.click()}>
+              <Avatar className="h-8 w-8 md:h-10 md:w-10 cursor-pointer" onClick={() => profileInputRef.current?.click()}>
                 <AvatarImage src={user.photoURL || profilePictureUrl || undefined} alt={user.displayName || 'User'} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs md:text-sm">
                   {user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               {isUploadingProfile && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
                 </div>
               )}
               <input
@@ -200,21 +202,21 @@ export default function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border"
+                className="absolute -bottom-1 -right-1 h-5 w-5 md:h-6 md:w-6 rounded-full bg-background border"
                 onClick={() => profileInputRef.current?.click()}
                 disabled={isUploadingProfile}
                 title="Change profile picture"
               >
-                <Camera className="h-3 w-3" />
+                <Camera className="h-2.5 w-2.5 md:h-3 md:w-3" />
               </Button>
             </div>
-            <span className='text-sm text-muted-foreground'>Hi, {user.displayName}</span>
+            <span className='text-xs md:text-sm text-muted-foreground hidden sm:inline'>Hi, {user.displayName}</span>
           </>
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" title="Delete account">
-              <Trash2 className="h-5 w-5 text-destructive" />
+            <Button variant="ghost" size="icon" title="Delete account" className="h-8 w-8 md:h-10 md:w-10">
+              <Trash2 className="h-4 w-4 md:h-5 md:w-5 text-destructive" />
               <span className="sr-only">Delete account</span>
             </Button>
           </AlertDialogTrigger>
@@ -271,8 +273,8 @@ export default function Header() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <Button variant="ghost" size="icon" onClick={logout}>
-          <LogOut className="h-5 w-5" />
+        <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8 md:h-10 md:w-10">
+          <LogOut className="h-4 w-4 md:h-5 md:w-5" />
           <span className="sr-only">Log out</span>
         </Button>
       </div>

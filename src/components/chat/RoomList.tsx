@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '../ui/skeleton';
-import { PlusCircle, MessageSquare, Trash2 } from 'lucide-react';
+import { PlusCircle, MessageSquare, Trash2, LogOut, Lock, Globe } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '../ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 
 export interface Room {
   id: string;
@@ -27,6 +29,8 @@ export interface Room {
   isDM: boolean;
   memberUsernames?: string[];
   createdBy?: string;
+  isPublic?: boolean;
+  invitedUsers?: string[];
 }
 
 interface RoomListProps {
@@ -41,6 +45,7 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
   const [newRoomName, setNewRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPublicRoom, setIsPublicRoom] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -54,7 +59,8 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
     console.log('RoomList: Setting up listeners for user:', user.uid);
     const roomsRef = collection(db, 'rooms');
     
-    // Query 1: Get all public rooms (rooms where isDM is false)
+    // Query 1: Get all public rooms (rooms where isDM is false and isPublic is true)
+    // Also get private rooms where user is a member or invited
     const publicRoomsQuery = query(roomsRef, where('isDM', '==', false));
     
     // Query 2: Get DM rooms where user is a member
@@ -97,10 +103,18 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
         console.log('RoomList: Received', snapshot.size, 'public rooms');
         snapshot.forEach((doc) => {
           const data = doc.data();
-          publicRoomsData.push({
+          const room = {
             id: doc.id,
             ...(data as Omit<Room, 'id'>),
-          });
+          };
+          // Only show public rooms or private rooms where user is a member or invited
+          const isPublic = data.isPublic !== false; // Default to true for backwards compatibility
+          const isMember = room.members.includes(user.uid);
+          const isInvited = room.invitedUsers?.includes(user.uid) || false;
+          
+          if (isPublic || isMember || isInvited) {
+            publicRoomsData.push(room);
+          }
         });
         updateRooms();
       },
@@ -157,13 +171,15 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
 
     try {
       const username = user.displayName || user.email?.split('@')[0] || 'User';
-      const newRoomData = {
+      const newRoomData: any = {
         name: newRoomName.trim(),
         members: [user.uid],
         memberUsernames: [username],
         createdAt: serverTimestamp(),
         isDM: false,
         createdBy: user.uid,
+        isPublic: isPublicRoom,
+        invitedUsers: [],
       };
       
       console.log('RoomList: Creating room with data:', newRoomData);
@@ -171,6 +187,7 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
       console.log('RoomList: Room created successfully with ID:', newRoomRef.id);
       
       setNewRoomName('');
+      setIsPublicRoom(true);
       setIsDialogOpen(false);
       onSelectRoom({ id: newRoomRef.id, ...newRoomData });
       toast({ title: 'Room created!' });
@@ -203,16 +220,37 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
     // Always select the room first for immediate UI feedback
     onSelectRoom(room);
 
-    // If user is not a member, join the room
+    // If user is not a member, check if they can join
     if (!room.members.includes(user.uid)) {
+        const isPublic = room.isPublic !== false; // Default to true for backwards compatibility
+        const isInvited = room.invitedUsers?.includes(user.uid) || false;
+        
+        // Only allow joining if room is public or user is invited
+        if (!isPublic && !isInvited) {
+          toast({ 
+            variant: 'destructive', 
+            title: 'Cannot join room', 
+            description: 'This is a private room. You need to be invited to join.'
+          });
+          return;
+        }
+        
         try {
             const username = user.displayName || user.email?.split('@')[0] || 'User';
             const roomRef = doc(db, 'rooms', room.id);
             console.log('RoomList: Joining room', room.id, 'as user', user.uid);
-            await updateDoc(roomRef, {
+            
+            const updateData: any = {
                 members: arrayUnion(user.uid),
                 memberUsernames: arrayUnion(username)
-            });
+            };
+            
+            // Remove from invited list if they were invited
+            if (isInvited && room.invitedUsers) {
+              updateData.invitedUsers = arrayRemove(user.uid);
+            }
+            
+            await updateDoc(roomRef, updateData);
             console.log('RoomList: Successfully joined room');
             toast({ title: `Joined #${room.name}`});
         } catch (error: any) {
@@ -232,6 +270,68 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
               });
             }
         }
+    }
+  };
+
+  const handleLeaveRoom = async (room: Room) => {
+    if (!user) return;
+    
+    // Can't leave DM rooms
+    if (room.isDM) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot leave',
+        description: 'You cannot leave direct message rooms.',
+      });
+      return;
+    }
+    
+    // Can't leave if you're the creator
+    const isCreator = room.createdBy === user.uid || 
+      (!room.createdBy && room.members.length > 0 && room.members[0] === user.uid);
+    
+    if (isCreator) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot leave',
+        description: 'Room creators cannot leave their own rooms. Delete the room instead.',
+      });
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to leave "${room.name}"?`)) {
+      return;
+    }
+
+    try {
+      const username = user.displayName || user.email?.split('@')[0] || 'User';
+      const roomRef = doc(db, 'rooms', room.id);
+      await updateDoc(roomRef, {
+        members: arrayRemove(user.uid),
+        memberUsernames: arrayRemove(username)
+      });
+      
+      toast({
+        title: 'Left room',
+        description: `You have left "${room.name}".`,
+      });
+
+      // Clear active room if it was the one we left
+      if (activeRoomId === room.id) {
+        const remainingRooms = [...publicRooms.filter(r => r.id !== room.id), ...dmRooms.filter(r => r.id !== room.id)];
+        if (remainingRooms.length > 0) {
+          onSelectRoom(remainingRooms[0]);
+        } else {
+          onSelectRoom({ id: '', name: '', members: [], isDM: false });
+        }
+      }
+    } catch (error: any) {
+      console.error('RoomList: Error leaving room:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error leaving room',
+        description: error.message || 'Please try again.',
+      });
     }
   };
 
@@ -294,6 +394,10 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
       (!room.createdBy && room.members.length > 0 && room.members[0] === user.uid)
     );
     
+    const isMember = user && room.members.includes(user.uid);
+    const isPublic = room.isPublic !== false; // Default to true for backwards compatibility
+    const isInvited = room.invitedUsers?.includes(user?.uid || '') || false;
+    
     // Debug logging
     if (!isDM && user) {
       console.log(`RoomList: Room "${room.name}" - createdBy: ${room.createdBy}, user.uid: ${user.uid}, firstMember: ${room.members[0]}, isCreator: ${isCreator}`);
@@ -309,9 +413,36 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
             room.id === activeRoomId ? 'bg-accent text-accent-foreground' : ''
           )}
         >
-          {isDM ? <span className='mr-2'>@</span> : <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />}
+          {isDM ? (
+            <span className='mr-2'>@</span>
+          ) : (
+            <>
+              {isPublic ? (
+                <Globe className="mr-2 h-4 w-4 flex-shrink-0" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4 flex-shrink-0" />
+              )}
+            </>
+          )}
           <span className="truncate">{room.name}</span>
+          {!isDM && !isPublic && !isMember && isInvited && (
+            <span className="ml-2 text-xs text-muted-foreground">(invited)</span>
+          )}
         </Button>
+        {!isDM && isMember && !isCreator && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLeaveRoom(room);
+            }}
+            title="Leave room"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        )}
         {isCreator && (
           <Button
             variant="ghost"
@@ -344,15 +475,44 @@ export default function RoomList({ onSelectRoom, activeRoomId }: RoomListProps) 
             <DialogHeader>
               <DialogTitle>Create a new room</DialogTitle>
               <DialogDescription>
-                Enter a name for your new public chat room.
+                Enter a name for your new chat room and choose its privacy setting.
               </DialogDescription>
             </DialogHeader>
-            <Input 
-              placeholder="e.g. #gaming" 
-              value={newRoomName}
-              onChange={(e) => setNewRoomName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateRoom()}
-            />
+            <div className="space-y-4">
+              <Input 
+                placeholder="e.g. #gaming" 
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateRoom()}
+              />
+              <div className="flex items-center justify-between space-x-2">
+                <Label htmlFor="room-privacy" className="flex-1">
+                  <div className="flex items-center gap-2">
+                    {isPublicRoom ? (
+                      <>
+                        <Globe className="h-4 w-4" />
+                        <span>Public Room</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" />
+                        <span>Private Room</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isPublicRoom 
+                      ? 'Everyone can see and join this room' 
+                      : 'Only invited users can see and join this room'}
+                  </p>
+                </Label>
+                <Switch
+                  id="room-privacy"
+                  checked={isPublicRoom}
+                  onCheckedChange={setIsPublicRoom}
+                />
+              </div>
+            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateRoom} disabled={isCreating || !newRoomName.trim()}>Create</Button>

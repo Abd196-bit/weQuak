@@ -25,7 +25,6 @@ interface AuthFormProps {
 }
 
 const formSchema = z.object({
-  username: z.string().optional(),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
@@ -65,7 +64,7 @@ export default function AuthForm({ isSignUp, onSubmit, isLoading }: AuthFormProp
                   <FormItem>
                     <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your cool username" {...field} />
+                      <Input placeholder="Your cool username" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -79,7 +78,7 @@ export default function AuthForm({ isSignUp, onSubmit, isLoading }: AuthFormProp
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="you@example.com" {...field} />
+                    <Input type="email" placeholder="you@example.com" {...field} disabled={isLoading} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,7 +91,7 @@ export default function AuthForm({ isSignUp, onSubmit, isLoading }: AuthFormProp
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

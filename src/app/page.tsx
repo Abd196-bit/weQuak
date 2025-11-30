@@ -66,7 +66,7 @@ export default function Home() {
             </div>
           )}
         </main>
-        <UserList onSelectRoom={handleSelectRoom} />
+        <UserList onSelectRoom={handleSelectRoom} activeRoom={activeRoom} />
       </div>
     </div>
   );

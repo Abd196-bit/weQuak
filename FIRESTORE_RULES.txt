@@ -3,21 +3,32 @@ Copy and paste these rules into Firebase Console → Firestore Database → Rule
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'tmw.helps@gmail.com';
+    }
+    
     // Users collection - authenticated users can read all, write their own
     match /users/{userId} {
       // Allow reading individual user documents and listing all users
       allow read: if request.auth != null;
-      // Allow writing only to own user document
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Allow writing only to own user document, or admin can write any
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
     
     // Rooms collection
     match /rooms/{roomId} {
-      // Allow reading public rooms (isDM == false) for all authenticated users
-      // Allow reading DM rooms only if user is a member
+      // Allow reading:
+      // 1. Public rooms (isDM == false and isPublic != false)
+      // 2. DM rooms if user is a member
+      // 3. Private rooms if user is a member or invited
+      // 4. Admin can read any room
       allow read: if request.auth != null && (
-        resource.data.isDM == false || 
-        request.auth.uid in resource.data.members
+        isAdmin() ||
+        (resource.data.isDM == false && (resource.data.isPublic != false || request.auth.uid in resource.data.members || request.auth.uid in resource.data.get('invitedUsers', []))) ||
+        (resource.data.isDM == true && request.auth.uid in resource.data.members) ||
+        request.auth.uid in resource.data.members ||
+        request.auth.uid in resource.data.get('invitedUsers', [])
       );
       
       // Allow creating rooms if user is in the members array
@@ -25,23 +36,26 @@ service cloud.firestore {
       
       // Allow updating rooms:
       // 1. If user is already a member, OR
-      // 2. If room is public (isDM == false) - allows joining
+      // 2. If room is public (isDM == false and isPublic != false) - allows joining
+      // 3. If user is invited to a private room
       allow update: if request.auth != null && (
         request.auth.uid in resource.data.members ||
-        resource.data.isDM == false
+        (resource.data.isDM == false && resource.data.isPublic != false) ||
+        request.auth.uid in resource.data.get('invitedUsers', [])
       );
       
-      // Allow deleting rooms if user is the creator (by createdBy field) or first member (for backward compatibility)
+      // Allow deleting rooms if user is the creator (by createdBy field) or first member (for backward compatibility), or admin
       allow delete: if request.auth != null && (
+        isAdmin() ||
         request.auth.uid == resource.data.createdBy ||
         (!('createdBy' in resource.data) && resource.data.members.size() > 0 && request.auth.uid == resource.data.members[0])
       );
       
       // Messages subcollection
       match /messages/{messageId} {
-        // Allow reading/creating messages if user is a member of the parent room
-        allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.members;
-        // Allow deleting messages (for account deletion cleanup)
+        // Allow reading/creating messages if user is a member of the parent room, or admin
+        allow read, create: if request.auth != null && (isAdmin() || request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.members);
+        // Allow deleting messages (for account deletion cleanup) or admin
         allow delete: if request.auth != null;
       }
     }
@@ -49,15 +63,28 @@ service cloud.firestore {
     // Invites collection
     match /invites/{inviteId} {
       // Allow reading individual invites if user is sender or receiver
-      allow get: if request.auth != null && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+      allow get: if request.auth != null && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to || isAdmin());
       // Allow listing invites - Firestore will filter results based on query conditions
       // The query in UserList filters by 'to' or 'from' matching user.uid, so this should work
       allow list: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.from;
-      allow update: if request.auth != null && request.auth.uid == resource.data.to;
-      // Allow deleting invites (for account deletion cleanup and canceling)
-      allow delete: if request.auth != null && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+      allow update: if request.auth != null && (request.auth.uid == resource.data.to || isAdmin());
+      // Allow deleting invites (for account deletion cleanup and canceling) or admin
+      allow delete: if request.auth != null && (isAdmin() || request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
     }
+    
+    // SMS Notifications collection - for queuing SMS notifications
+    match /sms_notifications/{notificationId} {
+      // Allow creating notifications (for sending SMS when messages are sent)
+      allow create: if request.auth != null;
+      // Allow reading own notifications (for status checking) or admin
+      allow read: if request.auth != null && (request.auth.uid == resource.data.recipientUserId || isAdmin());
+      // Allow updating notification status (for Cloud Functions) or admin
+      allow update: if request.auth != null;
+      // Allow deleting processed notifications or admin
+      allow delete: if request.auth != null && (isAdmin() || true);
+    }
+    
   }
 }
 

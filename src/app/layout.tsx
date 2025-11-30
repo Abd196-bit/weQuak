@@ -1,12 +1,8 @@
-import type { Metadata } from 'next';
+'use client';
+
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
-
-export const metadata: Metadata = {
-  title: 'We Quack',
-  description: 'A real-time chat application',
-};
 
 export default function RootLayout({
   children,

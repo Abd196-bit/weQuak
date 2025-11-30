@@ -23,9 +23,20 @@ export default function SignUpPage() {
   }, [user, loading, router]);
 
   const handleSignUp = async (data: any) => {
+    if (!data.username || !data.email || !data.password) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing information',
+        description: 'Please fill in all required fields.',
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       console.log('SignUpPage: Creating user with email:', data.email);
+      
+      // Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
       console.log('SignUpPage: User created successfully:', user.uid);

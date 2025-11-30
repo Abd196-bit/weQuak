@@ -48,7 +48,21 @@ export default function MessageList({ roomId }: MessageListProps) {
       const userIds = new Set<string>();
       
       querySnapshot.forEach((doc) => {
-        const messageData = { id: doc.id, ...doc.data() } as Message;
+        const data = doc.data();
+        const messageData: Message = { 
+          id: doc.id, 
+          text: data.text || '',
+          userId: data.userId || '',
+          username: data.username || 'Unknown',
+          timestamp: data.timestamp || null,
+          imageUrl: data.imageUrl,
+          imageWidth: data.imageWidth,
+          imageHeight: data.imageHeight,
+          fileUrl: data.fileUrl,
+          fileName: data.fileName,
+          fileType: data.fileType,
+          fileSize: data.fileSize,
+        };
         newMessages.push(messageData);
         userIds.add(messageData.userId);
       });
@@ -117,6 +131,32 @@ export default function MessageList({ roomId }: MessageListProps) {
                   <p className="text-xs font-bold text-muted-foreground mb-1">{message.username}</p>
                 )}
                 {message.text && <p className="text-sm">{message.text}</p>}
+                {message.timestamp && (
+                  <p className={cn(
+                    "text-xs mt-1 opacity-70",
+                    isCurrentUser ? "text-right" : "text-left"
+                  )}>
+                    {(() => {
+                      try {
+                        if (message.timestamp?.seconds) {
+                          return new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
+                        } else if (message.timestamp instanceof Date) {
+                          return message.timestamp.toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
+                        }
+                        return '';
+                      } catch (error) {
+                        console.error('Error formatting timestamp:', error);
+                        return '';
+                      }
+                    })()}
+                  </p>
+                )}
                 {message.imageUrl && (
                     <div className='mt-2'>
                         <Image 
