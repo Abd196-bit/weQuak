@@ -68,11 +68,13 @@
   },
   "devDependencies": {
     "@emnapi/runtime": "^1.7.1",
+    "@img/sharp-darwin-arm64": "^0.34.5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "dmg-license": "^1.0.11",
     "electron": "^39.2.4",
     "electron-builder": "^26.0.12",
     "genkit-cli": "^1.20.0",
@@ -108,7 +110,6 @@
         {
           "target": "dmg",
           "arch": [
-            "x64",
             "arm64"
           ]
         }
@@ -137,6 +138,11 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "asarUnpack": [
+      "node_modules/sharp/**/*"
+    ],
+    "npmRebuild": false,
+    "nodeGypRebuild": false
   }
 }
