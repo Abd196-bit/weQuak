@@ -12,18 +12,38 @@ function startNextServer() {
   const command = isDev ? 'dev' : 'start';
   const portFlag = isDev ? '--turbopack -p' : '-p';
   
-  nextProcess = spawn('npm', ['run', command, portFlag, PORT.toString()], {
+  const serverCommand = isDev 
+    ? ['run', command, '--turbopack', '-p', PORT.toString()]
+    : ['run', command, '-p', PORT.toString()];
+  
+  nextProcess = spawn('npm', serverCommand, {
     shell: true,
-    stdio: 'inherit',
+    stdio: ['ignore', 'pipe', 'pipe'],
     cwd: path.join(__dirname, '..'),
     env: {
       ...process.env,
       PORT: PORT.toString(),
+      NODE_ENV: isDev ? 'development' : 'production',
     },
   });
 
-  nextProcess.on('close', () => {
-    app.quit();
+  nextProcess.stdout.on('data', (data) => {
+    console.log(`Next.js: ${data}`);
+    // Check if server is ready
+    if (data.toString().includes('Ready') || data.toString().includes('started server')) {
+      console.log('Next.js server is ready!');
+    }
+  });
+
+  nextProcess.stderr.on('data', (data) => {
+    console.error(`Next.js Error: ${data}`);
+  });
+
+  nextProcess.on('close', (code) => {
+    console.log(`Next.js server exited with code ${code}`);
+    if (code !== 0 && code !== null) {
+      app.quit();
+    }
   });
 
   nextProcess.on('error', (err) => {
@@ -43,7 +63,7 @@ function createWindow() {
       contextIsolation: true,
       webSecurity: true,
     },
-    icon: path.join(__dirname, '../src/app/favicon.png'),
+    icon: path.join(__dirname, '../public/favicon.ico'),
     titleBarStyle: 'default',
     show: false,
     backgroundColor: '#000000',
@@ -51,12 +71,33 @@ function createWindow() {
 
   const startUrl = `http://localhost:${PORT}`;
 
-  // Wait a bit for server to be ready, then load
-  const loadWindow = () => {
-    mainWindow.loadURL(startUrl).catch((err) => {
-      console.error('Failed to load URL:', err);
-      // Retry after a delay
-      setTimeout(loadWindow, 2000);
+  // Function to check if server is ready
+  const checkServerReady = (retries = 30) => {
+    const http = require('http');
+    const req = http.get(`http://localhost:${PORT}`, (res) => {
+      console.log('Server is ready!');
+      mainWindow.loadURL(startUrl).catch((err) => {
+        console.error('Failed to load URL:', err);
+      });
+    });
+    
+    req.on('error', (err) => {
+      if (retries > 0) {
+        console.log(`Waiting for server... (${retries} retries left)`);
+        setTimeout(() => checkServerReady(retries - 1), 1000);
+      } else {
+        console.error('Server failed to start after 30 seconds');
+        mainWindow.loadURL(startUrl).catch((err) => {
+          console.error('Failed to load URL:', err);
+        });
+      }
+    });
+    
+    req.setTimeout(1000, () => {
+      req.destroy();
+      if (retries > 0) {
+        setTimeout(() => checkServerReady(retries - 1), 1000);
+      }
     });
   };
 
@@ -66,24 +107,22 @@ function createWindow() {
     if (isDev) {
       mainWindow.webContents.openDevTools();
     }
+    
+    // Start checking for server after window is ready
+    setTimeout(() => checkServerReady(), 2000);
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
-  // Start loading after a short delay to ensure server is ready
-  setTimeout(loadWindow, isDev ? 5000 : 3000);
 }
 
 app.whenReady().then(() => {
   // Start Next.js server first
   startNextServer();
   
-  // Then create window
-  setTimeout(() => {
-    createWindow();
-  }, isDev ? 3000 : 2000);
+  // Then create window immediately (it will wait for server)
+  createWindow();
 });
 
 app.on('window-all-closed', () => {
