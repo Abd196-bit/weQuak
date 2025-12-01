@@ -35,12 +35,56 @@
             margin-bottom: 50px;
         }
 
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .logo-img {
+            width: 64px;
+            height: 64px;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            transition: all 0.2s ease;
+            filter: drop-shadow(2px 2px 0px hsl(48, 96%, 50%));
+        }
+
+        .logo-container:hover .logo-img {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(4px 4px 0px hsl(48, 96%, 50%));
+        }
+
+        .logo-container:active .logo-img {
+            transform: scale(0.95) rotate(-5deg);
+        }
+
+        @keyframes quack {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(5deg); }
+            50% { transform: scale(1.05) rotate(-5deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .logo-img.animate {
+            animation: quack 0.5s ease;
+        }
+
         header h1 {
             font-size: 2rem;
             font-weight: normal;
             margin-bottom: 20px;
             color: hsl(48, 96%, 50%);
             text-shadow: 2px 2px 0px hsl(240, 10%, 3.9%);
+            transition: all 0.1s ease;
+        }
+
+        .logo-container:hover ~ h1 {
+            text-shadow: 3px 3px 0px hsl(240, 10%, 3.9%), 0 0 10px hsl(48, 96%, 50%);
         }
 
         header p {
@@ -68,6 +112,12 @@
             border-color: hsl(48, 96%, 50%);
             box-shadow: 4px 4px 0px hsl(48, 96%, 50%);
             transform: translate(-2px, -2px);
+            cursor: pointer;
+        }
+
+        .download-card:active {
+            transform: translate(0px, 0px);
+            box-shadow: 2px 2px 0px hsl(48, 96%, 50%);
         }
 
         .download-card::before {
@@ -110,6 +160,12 @@
             justify-content: center;
             font-size: 20px;
             border: 2px solid;
+            transition: all 0.2s ease;
+        }
+
+        .download-card:hover .platform-icon {
+            transform: scale(1.1);
+            box-shadow: 2px 2px 0px hsl(48, 96%, 50%);
         }
 
         .platform-icon.macos {
@@ -245,6 +301,15 @@
             line-height: 1.8;
         }
 
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .download-btn.downloading {
+            animation: pulse 1s infinite;
+        }
+
         @media (max-width: 768px) {
             header h1 {
                 font-size: 1.2rem;
@@ -267,12 +332,24 @@
             .platform-details h3 {
                 font-size: 0.6rem;
             }
+
+            .logo-img {
+                width: 48px;
+                height: 48px;
+            }
+
+            header h1 {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
+            <div class="logo-container" id="logoContainer">
+                <img src="/favicon.ico" alt="We Quack Logo" class="logo-img" id="logoImg">
+            </div>
             <h1>DOWNLOAD WE QUACK</h1>
             <p>GET THE LATEST VERSION FOR YOUR PLATFORM</p>
         </header>
@@ -285,8 +362,7 @@
             <h3>INSTALLATION INSTRUCTIONS</h3>
             <ul>
                 <li><strong>MACOS:</strong> DOWNLOAD THE DMG FILE, OPEN IT, AND DRAG WE QUACK TO YOUR APPLICATIONS FOLDER.</li>
-                <li><strong>WINDOWS:</strong> DOWNLOAD THE MSI OR EXE INSTALLER AND FOLLOW THE INSTALLATION WIZARD.</li>
-                <li><strong>LINUX:</strong> DOWNLOAD THE APPIMAGE OR DEB PACKAGE AND INSTALL USING YOUR PACKAGE MANAGER.</li>
+                <li><strong>WINDOWS:</strong> DOWNLOAD THE EXE INSTALLER AND FOLLOW THE INSTALLATION WIZARD.</li>
             </ul>
         </div>
 
@@ -296,7 +372,7 @@
     </div>
 
     <script>
-        // Download files data
+        // Download files data - Only Tauri builds
         const downloads = [
             {
                 name: 'We Quack for macOS (ARM64)',
@@ -309,12 +385,12 @@
                 icon: '[ ]'
             },
             {
-                name: 'We Quack for macOS (Intel)',
-                platform: 'macOS',
+                name: 'We Quack for Windows',
+                platform: 'Windows',
                 version: '0.1.0',
-                size: '292 MB',
-                url: '/downloads/We Quack-0.1.0-arm64.dmg',
-                description: 'Electron build - Compatible with Intel and Apple Silicon',
+                size: '~5 MB',
+                url: '/downloads/We Quack_0.1.0_x64-setup.exe',
+                description: 'Tauri build - Windows 64-bit installer',
                 date: new Date().toLocaleDateString(),
                 icon: '[ ]'
             }
@@ -365,18 +441,59 @@
                 </div>
             `).join('');
 
-            // Add click tracking
+            // Add click tracking and animations
             document.querySelectorAll('.download-btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     const url = this.getAttribute('href');
                     console.log('Download started:', url);
-                    // You can add analytics here
+                    
+                    // Add downloading animation
+                    this.classList.add('downloading');
+                    this.textContent = 'DOWNLOADING...';
+                    
+                    // Reset after a delay
+                    setTimeout(() => {
+                        this.classList.remove('downloading');
+                        this.textContent = 'DOWNLOAD';
+                    }, 2000);
+                    
+                    // Trigger logo animation
+                    animateLogo();
                 });
             });
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', renderDownloads);
+        // Logo interaction
+        function animateLogo() {
+            const logoImg = document.getElementById('logoImg');
+            if (logoImg) {
+                logoImg.classList.add('animate');
+                setTimeout(() => {
+                    logoImg.classList.remove('animate');
+                }, 500);
+            }
+        }
+
+        // Add click handler to logo
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoContainer = document.getElementById('logoContainer');
+            if (logoContainer) {
+                logoContainer.addEventListener('click', () => {
+                    animateLogo();
+                    // Optional: Navigate to home
+                    // window.location.href = '/';
+                });
+            }
+            
+            // Add random quack animation every 10 seconds
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    animateLogo();
+                }
+            }, 10000);
+            
+            renderDownloads();
+        });
     </script>
 </body>
 </html>
