@@ -1,12 +1,12 @@
 {
   "productName": "We Quack",
   "version": "0.1.0",
-  "identifier": "com.wequack.app",
+  "identifier": "com.wequack",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build && npm run start",
+    "beforeBuildCommand": "TAURI_BUILD=true npm run build",
     "devUrl": "http://localhost:9002",
-    "frontendDist": "../.next"
+    "frontendDist": "../out"
   },
   "app": {
     "windows": [

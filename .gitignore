@@ -51,3 +51,6 @@ out/
 *.exe
 *.AppImage
 *.deb
+
+# tauri
+src-tauri/target/
