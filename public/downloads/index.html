@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Download We Quack - Desktop App</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,11 +16,12 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
+            font-family: 'Press Start 2P', monospace;
+            background-color: hsl(240, 10%, 3.9%);
+            color: hsl(60, 90%, 90%);
             min-height: 100vh;
             padding: 20px;
+            line-height: 1.8;
         }
 
         .container {
@@ -32,18 +36,17 @@
         }
 
         header h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 2rem;
+            font-weight: normal;
+            margin-bottom: 20px;
+            color: hsl(48, 96%, 50%);
+            text-shadow: 2px 2px 0px hsl(240, 10%, 3.9%);
         }
 
         header p {
-            font-size: 1.2rem;
-            color: #b0b0b0;
+            font-size: 0.7rem;
+            color: hsl(240, 5%, 64.9%);
+            line-height: 2;
         }
 
         .downloads-grid {
@@ -53,18 +56,34 @@
         }
 
         .download-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 25px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            background: hsl(240, 10%, 3.9%);
+            border: 2px solid hsl(240, 3.7%, 15.9%);
+            border-radius: 0;
+            padding: 20px;
+            transition: all 0.1s ease;
+            position: relative;
         }
 
         .download-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
-            border-color: rgba(255, 215, 0, 0.3);
+            border-color: hsl(48, 96%, 50%);
+            box-shadow: 4px 4px 0px hsl(48, 96%, 50%);
+            transform: translate(-2px, -2px);
+        }
+
+        .download-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid hsl(48, 96%, 50%);
+            opacity: 0;
+            transition: opacity 0.1s ease;
+        }
+
+        .download-card:hover::before {
+            opacity: 0.3;
         }
 
         .card-header {
@@ -85,83 +104,91 @@
         .platform-icon {
             width: 50px;
             height: 50px;
-            border-radius: 10px;
+            border-radius: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 20px;
+            border: 2px solid;
         }
 
         .platform-icon.macos {
-            background: rgba(0, 122, 255, 0.2);
-            border: 1px solid rgba(0, 122, 255, 0.3);
+            background: hsl(240, 3.7%, 15.9%);
+            border-color: hsl(48, 96%, 50%);
         }
 
         .platform-icon.windows {
-            background: rgba(0, 188, 242, 0.2);
-            border: 1px solid rgba(0, 188, 242, 0.3);
+            background: hsl(240, 3.7%, 15.9%);
+            border-color: hsl(48, 96%, 50%);
         }
 
         .platform-icon.linux {
-            background: rgba(255, 140, 0, 0.2);
-            border: 1px solid rgba(255, 140, 0, 0.3);
+            background: hsl(240, 3.7%, 15.9%);
+            border-color: hsl(48, 96%, 50%);
         }
 
         .platform-details h3 {
-            font-size: 1.4rem;
-            margin-bottom: 5px;
-            color: #fff;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            color: hsl(60, 90%, 90%);
+            line-height: 1.6;
         }
 
         .platform-details .meta {
-            font-size: 0.9rem;
-            color: #b0b0b0;
+            font-size: 0.5rem;
+            color: hsl(240, 5%, 64.9%);
+            line-height: 1.8;
         }
 
         .download-btn {
-            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-            color: #1a1a2e;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
+            background: hsl(48, 96%, 50%);
+            color: hsl(240, 10%, 3.9%);
+            border: 2px solid hsl(48, 96%, 50%);
+            padding: 10px 20px;
+            border-radius: 0;
+            font-size: 0.6rem;
+            font-weight: normal;
+            font-family: 'Press Start 2P', monospace;
             cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
+            transition: all 0.1s ease;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
             text-decoration: none;
+            text-transform: uppercase;
+            box-shadow: 2px 2px 0px hsl(240, 10%, 3.9%);
         }
 
         .download-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px hsl(240, 10%, 3.9%);
         }
 
         .download-btn:active {
-            transform: scale(0.98);
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px hsl(240, 10%, 3.9%);
         }
 
         .card-description {
-            color: #b0b0b0;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            margin-top: 10px;
+            color: hsl(240, 5%, 64.9%);
+            font-size: 0.5rem;
+            line-height: 1.8;
+            margin-top: 15px;
         }
 
         .instructions {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 25px;
+            background: hsl(240, 10%, 3.9%);
+            border: 2px solid hsl(240, 3.7%, 15.9%);
+            border-radius: 0;
+            padding: 20px;
             margin-top: 40px;
         }
 
         .instructions h3 {
-            font-size: 1.3rem;
+            font-size: 0.7rem;
             margin-bottom: 15px;
-            color: #ffd700;
+            color: hsl(48, 96%, 50%);
+            line-height: 1.8;
         }
 
         .instructions ul {
@@ -170,8 +197,10 @@
         }
 
         .instructions li {
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 0;
+            border-bottom: 1px solid hsl(240, 3.7%, 15.9%);
+            font-size: 0.5rem;
+            line-height: 1.8;
         }
 
         .instructions li:last-child {
@@ -179,7 +208,7 @@
         }
 
         .instructions strong {
-            color: #ffd700;
+            color: hsl(48, 96%, 50%);
         }
 
         .back-link {
@@ -188,30 +217,41 @@
         }
 
         .back-link a {
-            color: #ffd700;
+            color: hsl(48, 96%, 50%);
             text-decoration: none;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            font-size: 0.6rem;
+            transition: all 0.1s ease;
+            display: inline-block;
         }
 
         .back-link a:hover {
-            text-decoration: underline;
+            text-shadow: 2px 2px 0px hsl(240, 10%, 3.9%);
+            transform: translate(-1px, -1px);
         }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #b0b0b0;
+            color: hsl(240, 5%, 64.9%);
         }
 
         .empty-state-icon {
-            font-size: 4rem;
+            font-size: 3rem;
             margin-bottom: 20px;
+        }
+
+        .empty-state p {
+            font-size: 0.6rem;
+            line-height: 1.8;
         }
 
         @media (max-width: 768px) {
             header h1 {
-                font-size: 2rem;
+                font-size: 1.2rem;
+            }
+
+            header p {
+                font-size: 0.5rem;
             }
 
             .card-header {
@@ -223,14 +263,18 @@
                 width: 100%;
                 justify-content: center;
             }
+
+            .platform-details h3 {
+                font-size: 0.6rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🦆 Download We Quack</h1>
-            <p>Get the latest version for your platform</p>
+            <h1>DOWNLOAD WE QUACK</h1>
+            <p>GET THE LATEST VERSION FOR YOUR PLATFORM</p>
         </header>
 
         <div class="downloads-grid" id="downloadsGrid">
@@ -238,16 +282,16 @@
         </div>
 
         <div class="instructions">
-            <h3>📦 Installation Instructions</h3>
+            <h3>INSTALLATION INSTRUCTIONS</h3>
             <ul>
-                <li><strong>macOS:</strong> Download the DMG file, open it, and drag We Quack to your Applications folder.</li>
-                <li><strong>Windows:</strong> Download the MSI or EXE installer and follow the installation wizard.</li>
-                <li><strong>Linux:</strong> Download the AppImage or DEB package and install using your package manager.</li>
+                <li><strong>MACOS:</strong> DOWNLOAD THE DMG FILE, OPEN IT, AND DRAG WE QUACK TO YOUR APPLICATIONS FOLDER.</li>
+                <li><strong>WINDOWS:</strong> DOWNLOAD THE MSI OR EXE INSTALLER AND FOLLOW THE INSTALLATION WIZARD.</li>
+                <li><strong>LINUX:</strong> DOWNLOAD THE APPIMAGE OR DEB PACKAGE AND INSTALL USING YOUR PACKAGE MANAGER.</li>
             </ul>
         </div>
 
         <div class="back-link">
-            <a href="/">← Back to Home</a>
+            <a href="/">&lt; BACK TO HOME</a>
         </div>
     </div>
 
@@ -262,7 +306,7 @@
                 url: '/downloads/We Quack_0.1.0_aarch64.dmg',
                 description: 'Tauri build - Optimized for Apple Silicon (M1/M2/M3)',
                 date: new Date().toLocaleDateString(),
-                icon: '💻'
+                icon: '[ ]'
             },
             {
                 name: 'We Quack for macOS (Intel)',
@@ -272,7 +316,7 @@
                 url: '/downloads/We Quack-0.1.0-arm64.dmg',
                 description: 'Electron build - Compatible with Intel and Apple Silicon',
                 date: new Date().toLocaleDateString(),
-                icon: '💻'
+                icon: '[ ]'
             }
         ];
 
@@ -290,9 +334,9 @@
             if (downloads.length === 0) {
                 grid.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📦</div>
-                        <p>No downloads available yet.</p>
-                        <p style="margin-top: 10px;">Check back soon for new releases!</p>
+                        <div class="empty-state-icon">[ ]</div>
+                        <p>NO DOWNLOADS AVAILABLE YET.</p>
+                        <p style="margin-top: 10px;">CHECK BACK SOON FOR NEW RELEASES!</p>
                     </div>
                 `;
                 return;
@@ -314,7 +358,7 @@
                             </div>
                         </div>
                         <a href="${download.url}" class="download-btn" download>
-                            ⬇️ Download
+                            DOWNLOAD
                         </a>
                     </div>
                     ${download.description ? `<div class="card-description">${download.description}</div>` : ''}
