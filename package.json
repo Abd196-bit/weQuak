@@ -18,6 +18,10 @@
     "electron:build:mac": "npm run build:electron && electron-builder --mac",
     "electron:build:win": "npm run build:electron && electron-builder --win",
     "electron:open": "open \"dist/mac-arm64/We Quack.app\" || open \"dist/mac/We Quack.app\" || echo 'App not found. Run npm run electron:build:mac first.'",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:mac": "tauri build --target aarch64-apple-darwin",
+    "tauri:build:win": "tauri build --target x86_64-pc-windows-msvc",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
