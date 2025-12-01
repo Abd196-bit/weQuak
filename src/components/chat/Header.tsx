@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, Trash2, Camera, Loader2 } from 'lucide-react';
+import { LogOut, Trash2, Camera, Loader2, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -173,19 +174,27 @@ export default function Header() {
   return (
     <header className="flex items-center justify-between p-3 md:p-4 bg-background border-b">
       <div className="flex items-center gap-2">
-        <img 
-          src="/favicon.ico" 
-          alt="We Quack Logo" 
-          className="h-6 w-6 md:h-8 md:w-8 object-contain"
-          onError={(e) => {
-            // Fallback to DuckIcon if image fails to load
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-        <DuckIcon className="text-primary h-6 w-6 md:h-8 md:w-8" />
-        <h1 className="text-lg md:text-xl font-bold text-primary">We Quack</h1>
+        <Link href="/" className="flex items-center gap-2">
+          <img 
+            src="/favicon.ico" 
+            alt="We Quack Logo" 
+            className="h-6 w-6 md:h-8 md:w-8 object-contain"
+            onError={(e) => {
+              // Fallback to DuckIcon if image fails to load
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <DuckIcon className="text-primary h-6 w-6 md:h-8 md:w-8" />
+          <h1 className="text-lg md:text-xl font-bold text-primary">We Quack</h1>
+        </Link>
       </div>
       <div className='flex items-center gap-2'>
+        <Link href="/downloads">
+          <Button variant="ghost" size="sm" className="gap-2">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Downloads</span>
+          </Button>
+        </Link>
         {user && (
           <>
             <div className="relative group">
