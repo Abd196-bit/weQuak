@@ -21,8 +21,12 @@ jobs:
         node-version: '20'
         cache: 'npm'
         
-    - name: Install dependencies
-      run: npm ci
+    - name: Install dependencies (skip optional)
+      run: npm ci --no-optional
+      continue-on-error: false
+      
+    - name: Install Windows-specific sharp
+      run: npm install --no-save sharp@^0.34.5
       continue-on-error: false
       
     - name: Verify icon exists
