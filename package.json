@@ -128,12 +128,12 @@
         {
           "target": "nsis",
           "arch": [
-            "x64",
-            "ia32"
+            "x64"
           ]
         }
       ],
-      "icon": "public/favicon.ico"
+      "icon": "public/favicon.ico",
+      "requestedExecutionLevel": "asInvoker"
     },
     "linux": {
       "target": [

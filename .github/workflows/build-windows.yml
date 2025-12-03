@@ -25,6 +25,16 @@ jobs:
       run: npm ci
       continue-on-error: false
       
+    - name: Verify icon exists
+      run: |
+        if (Test-Path "public/favicon.ico") {
+          Write-Host "Icon file found"
+        } else {
+          Write-Host "ERROR: Icon file not found!"
+          exit 1
+        }
+      continue-on-error: false
+      
     - name: Build Next.js
       run: npm run build:electron
       env:
@@ -32,15 +42,44 @@ jobs:
         ELECTRON_BUILD: true
       continue-on-error: false
       
+    - name: Verify Next.js build
+      run: |
+        if (Test-Path ".next") {
+          Write-Host "Next.js build successful"
+          Get-ChildItem -Path .next -Directory | Select-Object Name
+        } else {
+          Write-Host "ERROR: Next.js build failed!"
+          exit 1
+        }
+      continue-on-error: false
+      
+    - name: Verify electron files
+      run: |
+        if (Test-Path "electron/main.js") {
+          Write-Host "Electron main.js found"
+        } else {
+          Write-Host "ERROR: electron/main.js not found!"
+          exit 1
+        }
+      continue-on-error: false
+      
     - name: Build Windows EXE
       run: npm run electron:build:win
       env:
         NODE_ENV: production
         ELECTRON_BUILD: true
+        DEBUG: electron-builder
       continue-on-error: false
       
     - name: List dist directory
-      run: dir dist
+      run: |
+        Write-Host "Contents of dist directory:"
+        if (Test-Path "dist") {
+          Get-ChildItem -Path dist -Recurse | Select-Object FullName, Length
+        } else {
+          Write-Host "ERROR: dist directory not found!"
+          exit 1
+        }
       continue-on-error: true
       
     - name: Upload Windows EXE
@@ -49,5 +88,5 @@ jobs:
         name: windows-exe
         path: dist/*.exe
         retention-days: 30
-        if-no-files-found: warn
+        if-no-files-found: error
 
